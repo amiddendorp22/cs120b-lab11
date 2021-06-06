@@ -58,17 +58,83 @@ if (row == 0xEF && pattern == 0x01) { // Reset demo
 	return state;
 }
 
+
+unsigned char ballXDirection = 0;  //0 is left, 1 is right
+unsigned char ballYDirection = 0; //0 is decreasing, 1 is increasing
+unsigned char ballXPosition = 0x10;
+unsigned char ballYPosition = 0x00;
+unsigned char ballNextPosition = 0x00;
+
 /*
-unsigned char ballDirection = 0;  //0 is left, 1 is right
-unsigned char ballPosition = 0x00;
 enum Ball_States{ continueDirection, changeDirection};
 
 int Ball_Tick(int state)
 {
+	unsigned char tmpC = PORTC;
 	switch(state)
 	{
-		case(continueDirection)
+		case(continueDirection):
+			if((tmpC & ballNextPosition) == ballNextPosition) //if the location where the ball should go next is lit up
+			{
+				state = changeDirection;
+			}
+			else
+			{
+				state = continueDirection;
+			}
+			break;
+		case(changeDirection):
+			state = continueDirection; //continues in the new direction
+			break;
+		default:
+			state = continueDirection;
+			break;
 	}
+
+	switch(state)
+	{
+		case(continueDirection):
+			ballXPosition = ballNextPosition
+			if(ballYPosition == 0)
+			{
+				ballYPosition--;
+			}
+			else
+			{
+				ballYPosition++;
+			}
+			if(ballDirection == 0)
+			{
+				ballNextPosition = ballNextPosition << 1;
+			}
+			else
+			{
+				ballNextPosition = ballNextPosition >> 1;
+			}
+			break;
+		case(changeDirection):
+			if(ballYPosition == 0)
+			{
+				ballYPosition = 1;
+			}
+			else
+			{
+				ballYPosition = 0;
+			}
+			if(ballDirection == 0)
+			{
+				ballDirection = 1;
+			}
+			else
+			{
+				ballDirection = 0;
+			}
+			break;
+
+	}
+
+
+	return state;
 }
 
 */
@@ -159,7 +225,95 @@ int Player_Tick(int state)
 }
 
 
-enum Display_States {display_display};
+enum AI_States {AI_moveLeft, AI_moveRight, AI_stay};
+
+unsigned char AI_Pos = 0x38; //same as player
+unsigned char AI_Top_Pos = 0x08;
+unsigned char AI_Bot_Pos = 0x20;
+int AI_Tick(int state)
+{
+	switch(state)
+	{
+		case(AI_moveLeft):
+			if(ballXPosition < AI_Top_Pos)
+			{
+				state = AI_moveRight;
+			}
+			else if (ballXPosition > AI_Top_Pos)
+			{
+				state = AI_moveLeft;
+			}
+			else
+			{
+				state = AI_stay;
+			}
+			break;
+		case(AI_moveRight):
+			if(ballXPosition < AI_Top_Pos)
+                        {
+                                state = AI_moveRight;
+                        }
+                        else if (ballXPosition > AI_Top_Pos)
+                        {
+                                state = AI_moveLeft;
+                        }
+                        else
+                        {
+                                state = AI_stay;
+                        }
+                        break;
+		case(AI_stay):
+			if(ballXPosition < AI_Top_Pos)
+                        {
+                                state = AI_moveRight;
+                        }
+                        else if (ballXPosition > AI_Top_Pos)
+                        {
+                                state = AI_moveLeft;
+                        }
+                        else
+                        {
+                                state = AI_stay;
+                        }
+                        break;
+		default:
+			state = AI_stay;
+	}
+
+	switch(state)
+	{
+		case(AI_moveLeft):
+			if(AI_Pos == 0xE0)
+			{
+				//Do nothing
+			}
+			else
+			{
+				AI_Pos = AI_Pos << 1;
+				AI_Top_Pos = AI_Top_Pos << 1;
+				AI_Bot_Pos = AI_Bot_Pos << 1;
+			}
+			break;
+		case(AI_moveRight):
+			if(AI_Pos == 0x07)
+			{
+				//Do nothing
+			}
+			else
+			{
+				AI_Pos = AI_Pos >> 1;
+				AI_Top_Pos = AI_Top_Pos >> 1;
+				AI_Bot_Pos = AI_Bot_Pos >> 1;
+			}
+			break;
+		case(AI_stay):
+			break;
+	}
+
+	return state;
+}
+
+enum Display_States {display_player, display_opponent};
 
 
 
@@ -167,19 +321,26 @@ int Display_Tick(int state)
 {
 	switch(state)
 	{
-		case(display_display):
-			state = display_display;
+		case(display_player):
+			state = display_opponent;
+			break;
+		case(display_opponent):
+			state = display_player;
 			break;
 		default:
-			state = display_display;
+			state = display_player;
 			break;
 	}
 
 	switch(state)
 	{
-		case(display_display):
+		case(display_player):
 			PORTC = paddleLocation;
 			PORTD = ~(0x10);
+			break;
+		case(display_opponent):
+			PORTC = AI_Pos;
+			PORTD = ~(0x01);
 			break;
 	}
 
@@ -216,8 +377,9 @@ int main(void) {
 	DDRD = 0xFF; PORTD = 0x00;
     /* Insert your solution below */
 
-	static task task1, task2;
-	task *tasks[] = {&task1, &task2};
+	
+	static task task1, task2, task3;
+	task *tasks[] = {&task1, &task2, &task3};
 	const unsigned short numTasks = sizeof(tasks)/sizeof(task*);
 
 	const char start = -1;
@@ -228,9 +390,14 @@ int main(void) {
 	task1.TickFct = &Player_Tick;
 
 	task2.state = start;
-	task2.period = 50;
+	task2.period = 10;
 	task2.elapsedTime = task2.period;
 	task2.TickFct = &Display_Tick;
+
+	task3.state = start;
+	task3.period = 200;
+	task3.elapsedTime = task3.period;
+	task3.TickFct = &AI_Tick;
 
 	unsigned long GCD = tasks[0]->period;
 
@@ -241,10 +408,8 @@ int main(void) {
 		GCD = findGCD(GCD,tasks[i]->period);
 	}
 
-	TimerSet(GCD);
+	TimerSet(GCD); //used to be GCD
 	TimerOn();
-
-	unsigned char tmpA;
 
     while (1)
     {
