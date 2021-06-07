@@ -12,12 +12,15 @@
 #include "simAVRHeader.h"
 #include "avr/interrupt.h"
 #include "timer.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
 #endif
 
 /////////////////////////////global variables
 
 //ball variables
-char ballXDirection = 1;  //-1 is left, 0 is straight, 1 is right
+char ballXDirection = 1;  //-1 is left, 1 is right
 unsigned char ballYDirection = 1; //0 is decreasing, 1 is increasing
 unsigned char ballXPosition = 0x10;
 unsigned char ballYPosition = 0x04;
@@ -32,17 +35,32 @@ unsigned char paddle_bot = 0x10;
 unsigned char AI_Pos = 0x38; //same as player
 unsigned char AI_Top_Pos = 0x08;
 unsigned char AI_Bot_Pos = 0x20;
+//time_t t;
+//srand(time(0));
 
 
+//helper function
+
+/*
+int random_number(int min, int max)
+{
+	int difference = (max - min);
+	return (((int)(difference+1)/RAND_MAX) * rand() + min);
+}
+*/
 enum Ball_States{ continueDirection, changeDirection, changeDirectionCorner, topBounce, botBounce, reset};
 
 int Ball_Tick(int state)
 {
-	unsigned char tmpC = PORTC;
+	unsigned char resetButton = ~PINA & 0x08;
 	switch(state)
 	{
 		case(continueDirection):
-			if(ballYDirection == 1) //if the Y-coordinate of the ball is increasing
+			if(resetButton == 0x08)
+			{
+				state = reset;
+			}
+			else if(ballYDirection == 1) //if the Y-coordinate of the ball is increasing
 			{
 				if((ballYPosition << 1) == 0x10) // if the ball is entering the row that contains a paddle (used to be opposite)
 				{
@@ -114,6 +132,11 @@ int Ball_Tick(int state)
 			}
 			break;
 		case(changeDirection):
+			if(resetButton == 0x08)
+                        {
+                                state = reset;
+                        }
+
 			if(ballXPosition == 0x01)
 			{
 				state = topBounce;
@@ -131,6 +154,11 @@ int Ball_Tick(int state)
 			state = continueDirection;
 			break;
 		case(changeDirectionCorner):
+			if(resetButton == 0x08)
+                        {
+                                state = reset;
+                        }
+
 			if(ballXPosition == 0x01)
                         {
                                 state = topBounce;
@@ -146,6 +174,11 @@ int Ball_Tick(int state)
 
 			break;
 		case(botBounce):
+			if(resetButton == 0x08)
+                        {
+                                state = reset;
+                        }
+
 			if(ballYDirection == 1) //if the Y-coordinate of the ball is increasing
 			{
 				if((ballYPosition << 1) == 0x10) // if the ball is entering the row that contains a paddle (used to be opposite)
@@ -216,6 +249,11 @@ int Ball_Tick(int state)
 			}
 			break;
 		case(topBounce):
+			if(resetButton == 0x08)
+                        {
+                                state = reset;
+                        }
+
 			if(ballYDirection == 1) //if the Y-coordinate of the ball is increasing
 			{
 				if((ballYPosition << 1) == 0x10) // if the ball is entering the row that contains a paddle (used to be opposite)
@@ -398,6 +436,14 @@ int Ball_Tick(int state)
 			ballNextPosition = 0x10; //resets back to going down
 			ballXDirection = 1;
 			ballYDirection = 1;
+
+			paddleLocation = 0x1C;
+			paddle_top = 0x04;
+			paddle_bot = 0x10;
+
+			AI_Pos = 0x38;
+			AI_Top_Pos = 0x08;
+			AI_Bot_Pos = 0x20;
 			break;
 	}
 
@@ -410,48 +456,48 @@ enum Player_States {moveLeft, moveRight, stay};
 
 int Player_Tick(int state)
 {
-	unsigned char tmpA = ~PINA & 0x03; //grabs first two pins of PINA for player input up/down
+	unsigned char tmpA = ~PINA & 0x06; 
 	
 	switch(state)
 	{
 		case(moveLeft):
-			if(tmpA == 0x00 || tmpA == 0x03)
+			if(tmpA == 0x00 || tmpA == 0x06)
 			{
 				state = stay;
 			}
-			else if(tmpA == 0x01)
+			else if(tmpA == 0x02)
 			{
 				state = moveRight;
 			}
-			else if(tmpA == 0x02)
+			else if(tmpA == 0x04)
 			{
 				state = moveLeft;
 			}
 			break;
 		case(moveRight):
-			if(tmpA == 0x00 || tmpA == 0x03)
+			if(tmpA == 0x00 || tmpA == 0x06)
                         {
                                 state = stay;
                         }
-			else if(tmpA == 0x01)
+			else if(tmpA == 0x02)
                         {
                                 state = moveRight;
                         }
-			else if(tmpA == 0x02)
+			else if(tmpA == 0x04)
                         {
                                 state = moveLeft;
                         }
 			break;
 		case(stay):
-			if(tmpA == 0x00 || tmpA == 0x03)
+			if(tmpA == 0x00 || tmpA == 0x06)
                         {
                                 state = stay;
                         }
-			else if(tmpA == 0x01)
+			else if(tmpA == 0x02)
                         {
                                 state = moveRight;
                         }
-			else if(tmpA == 0x02)
+			else if(tmpA == 0x04)
                         {
                                 state = moveLeft;
                         }
@@ -498,6 +544,7 @@ enum AI_States {AI_moveLeft, AI_moveRight, AI_stay};
 
 int AI_Tick(int state)
 {
+//	int randomNumber = random_number(0,99); //generates a random number from 0 to 99
 	switch(state)
 	{
 		case(AI_moveLeft):
@@ -531,11 +578,12 @@ int AI_Tick(int state)
 		case(AI_stay):
 			if(ballXPosition < AI_Top_Pos)
                         {
-                                state = AI_moveRight;
+
+				state = AI_moveRight;
                         }
                         else if (ballXPosition > AI_Top_Pos)
                         {
-                                state = AI_moveLeft;
+				state = AI_moveLeft;
                         }
                         else
                         {
@@ -648,9 +696,7 @@ int main(void) {
 	DDRA = 0x00; PORTA = 0xFF;
 	DDRC = 0xFF; PORTC = 0x00;
 	DDRD = 0xFF; PORTD = 0x00;
-    /* Insert your solution below */
-
-	
+    /* Insert your solution below */	
 	static task task1, task2, task3, task4;
 	task *tasks[] = {&task1, &task2, &task3, &task4};
 	const unsigned short numTasks = sizeof(tasks)/sizeof(task*);
@@ -689,8 +735,10 @@ int main(void) {
 	TimerSet(GCD); //used to be GCD
 	TimerOn();
 
+	unsigned int seed = 49;
     while (1)
     {
+	//srand(NULL);
 	for(i = 0; i < numTasks; i++)
 	{
 		if(tasks[i]->elapsedTime == tasks[i]->period)
@@ -700,7 +748,14 @@ int main(void) {
 		}
 		tasks[i]->elapsedTime += GCD;
 	}
-
+//	if(seed < 4294967295)
+//	{
+//		seed++;
+//	}
+//	else
+//	{
+//		seed = 49;
+//	}
 	while(!TimerFlag);
 	TimerFlag = 0;
     }
