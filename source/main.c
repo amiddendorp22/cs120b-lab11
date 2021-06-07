@@ -1,9 +1,9 @@
-/*	Author: lab
+/*	Author: Andrew Middendorp
  *  Partner(s) Name: 
  *	Lab Section:
- *	Assignment: Lab #  Exercise #
+ *	Assignment: Lab # 11  Exercise # 1
  *	Exercise Description: [optional - include for your own benefit]
- *
+ *	Video Demo: https://youtu.be/90vi6dfdvLA
  *	I acknowledge all content contained herein, excluding template or example
  *	code, is my own original work.
  */
@@ -35,10 +35,8 @@ unsigned char paddle_bot = 0x10;
 unsigned char AI_Pos = 0x38; //same as player
 unsigned char AI_Top_Pos = 0x08;
 unsigned char AI_Bot_Pos = 0x20;
-//time_t t;
-//srand(time(0));
 
-//unsigned short x = ADC;
+
 
 void ADC_init()
 {
@@ -106,12 +104,10 @@ int Ball_Tick(int state)
 					if((AI_Top_Pos & ballNextPosition) == ballNextPosition) //if the ball will collide with a paddle
 					{
 						state = changeDirectionCorner;
-			//			AI_Pos = 0xE0;
 					}
 					else if((AI_Bot_Pos & ballNextPosition) == ballNextPosition)
 					{
 						state = changeDirectionCorner;
-			//			AI_Pos = 0xE0;
 					}
 					else if((AI_Pos & ballNextPosition) == ballNextPosition)
 					{
@@ -266,17 +262,14 @@ int Ball_Tick(int state)
 					if((paddle_top & ballNextPosition) == ballNextPosition) //if the ball will collide with a paddle
 					{
 						state = changeDirectionCorner;
-					//	AI_Pos = 0xE0;
 					}
 					else if((paddle_bot & ballNextPosition) == ballNextPosition)
 					{
 						state = changeDirectionCorner;
-					//	AI_Pos = 0xE0;
 					}
 					else if((paddleLocation & ballNextPosition) == ballNextPosition)
 					{
 						state = changeDirection;
-					//	AI_Pos = 0xE0;
 					}
 					else
 					{
@@ -339,8 +332,6 @@ int Ball_Tick(int state)
 	switch(state)
 	{
 		case(continueDirection):
-			//ballXPosition = ballNextPosition;
-			//AI_Pos = 0xE0;
 			if(ballYDirection == 0)
 			{
 				ballYPosition = ballYPosition >> 1; //used to be << 1
@@ -351,12 +342,10 @@ int Ball_Tick(int state)
 			}
 			if(ballXDirection == -1)
 			{
-			//	AI_Pos = 0xE0;
 				ballNextPosition = ballNextPosition << 1; //inverted this in last change
 			}
 			else
 			{
-			//	AI_Pos = 0xE0;
 				ballNextPosition = ballNextPosition >> 1;
 			}
 			ballXPosition = ballNextPosition;
@@ -395,8 +384,7 @@ int Ball_Tick(int state)
 			}
 			if(ballXDirection == 1)
 			{
-				ballXDirection = -1; //does this change? does it change back somehow?
-				//AI_Pos = 0xE0;
+				ballXDirection = -1;
 				ballNextPosition = ballNextPosition << 1;
 			}
 			else
@@ -405,7 +393,6 @@ int Ball_Tick(int state)
 				ballNextPosition = ballNextPosition >> 1;
 			}
 			ballXPosition = ballNextPosition;
-	//		AI_Pos = 0xE0;
 			break;
 		case(topBounce):
 			ballXDirection = -1;
@@ -419,7 +406,6 @@ int Ball_Tick(int state)
 			{
 				ballYPosition = ballYPosition << 1;
 			}
-		//	AI_Pos = 0xE0;
 			break;
 		case(botBounce):
 			ballXDirection = 1;
@@ -433,7 +419,6 @@ int Ball_Tick(int state)
 			{
 				ballYPosition = ballYPosition << 1;
 			}
-			//AI_Pos = 0xE0;
 			break;
 		case(reset):
 			ballXPosition = 0x10;
@@ -779,7 +764,7 @@ int main(void) {
 		GCD = findGCD(GCD,tasks[i]->period);
 	}
 
-	TimerSet(GCD); //used to be GCD
+	TimerSet(GCD);
 	TimerOn();
 
 	uint16_t u_rand_val = 0;
@@ -795,7 +780,6 @@ int main(void) {
 	srand(u_seed_rand_val);
     while (1)
     {
-//	unsigned int randomNumber = rand()%100;
 	for(i = 0; i < numTasks; i++)
 	{
 		if(tasks[i]->elapsedTime == tasks[i]->period)
