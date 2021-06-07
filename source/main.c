@@ -14,59 +14,27 @@
 #include "timer.h"
 #endif
 
+/////////////////////////////global variables
 
-
-
-//--------------------------------------
-// LED Matrix Demo SynchSM
-// Period: 100 ms
-//--------------------------------------
-enum Demo_States {shift};
-int Demo_Tick(int state) {
-
-	// Local Variables
-	static unsigned char pattern = 0x80;	// LED pattern - 0: LED off; 1: LED on
-	static unsigned char row = 0xFE;  	// Row(s) displaying pattern. 
-							// 0: display pattern on row
-							// 1: do NOT display pattern on row
-	// Transitions
-	switch (state) {
-		case shift:	
-break;
-		default:	
-state = shift;
-			break;
-	}	
-	// Actions
-	switch (state) {
-case shift:	
-if (row == 0xEF && pattern == 0x01) { // Reset demo 
-				pattern = 0x80;		    
-				row = 0xFE;
-			} else if (pattern == 0x01) { // Move LED to start of next row
-				pattern = 0x80;
-				row = (row << 1) | 0x01;
-			} else { // Shift LED one spot to the right on current row
-				pattern >>= 1;
-			}
-			break;
-		default:
-	break;
-	}
-	PORTC = pattern;	// Pattern to display
-	PORTD = row;		// Row(s) displaying pattern	
-	return state;
-}
-
-
-unsigned char ballXDirection = 0;  //0 is left, 1 is right
-unsigned char ballYDirection = 0; //0 is decreasing, 1 is increasing
+//ball variables
+unsigned char ballXDirection = 1;  //-1 is left, 0 is straight, 1 is right
+unsigned char ballYDirection = 1; //0 is decreasing, 1 is increasing
 unsigned char ballXPosition = 0x10;
-unsigned char ballYPosition = 0x00;
-unsigned char ballNextPosition = 0x00;
+unsigned char ballYPosition = 0x04;
+unsigned char ballNextPosition = 0x10; //starts going down
 
-/*
-enum Ball_States{ continueDirection, changeDirection};
+
+//player variables
+unsigned char paddleLocation = 0x1C;
+unsigned char paddle_top = 0x04;
+unsigned char paddle_bot = 0x10;
+//AI variables
+unsigned char AI_Pos = 0x38; //same as player
+unsigned char AI_Top_Pos = 0x08;
+unsigned char AI_Bot_Pos = 0x20;
+
+
+enum Ball_States{ continueDirection, changeDirection, changeDirectionCorner, topBounce, botBounce, reset};
 
 int Ball_Tick(int state)
 {
@@ -74,17 +42,89 @@ int Ball_Tick(int state)
 	switch(state)
 	{
 		case(continueDirection):
-			if((tmpC & ballNextPosition) == ballNextPosition) //if the location where the ball should go next is lit up
+			if(ballYDirection == 1) //if the Y-coordinate of the ball is increasing
 			{
-				state = changeDirection;
+				if((ballYPosition << 1) == 0x10) // if the ball is entering the row that contains a paddle (used to be opposite)
+				{
+					if((paddle_top & ballNextPosition) == ballNextPosition) //if the ball will collide with a paddle
+					{
+						state = changeDirectionCorner;
+					}
+					else if((paddle_bot & ballNextPosition) == ballNextPosition)
+					{
+						state = changeDirectionCorner;
+					}
+					else if((paddleLocation & ballNextPosition) == ballNextPosition)
+					{
+						state = changeDirection;
+					}
+					else
+					{
+						state = reset;
+					}
+				}
+				else if(ballXPosition == 0x01) //if the ball is about to go off the top of the map
+				{
+					state = topBounce;
+				}
+				else if(ballXPosition == 0x80) //was ballNextPosition
+				{
+					state = botBounce;
+				}
+				else
+				{
+					state = continueDirection;
+				}
 			}
 			else
 			{
-				state = continueDirection;
+				if((ballYPosition >> 1) == 0x01) // if the ball is entering the row that contains a paddle (used to be opposite)
+				{
+					if((AI_Top_Pos & ballNextPosition) == ballNextPosition) //if the ball will collide with a paddle
+					{
+						state = changeDirectionCorner;
+					}
+					else if((AI_Bot_Pos & ballNextPosition) == ballNextPosition)
+					{
+						state = changeDirectionCorner;
+					}
+					else if((AI_Pos & ballNextPosition) == ballNextPosition)
+					{
+						state = changeDirection;
+					}
+					else
+					{
+						state = reset;
+					}
+				}
+				else if(ballXPosition == 0x01)
+				{
+					state = topBounce;
+				}
+				else if(ballXPosition == 0x80)
+				{
+					state = botBounce;
+				}
+				else
+				{
+					state = continueDirection;
+				}
 			}
 			break;
 		case(changeDirection):
 			state = continueDirection; //continues in the new direction
+			break;
+		case(reset):
+			state = continueDirection;
+			break;
+		case(changeDirectionCorner):
+			state = continueDirection;
+			break;
+		case(botBounce):
+			state = continueDirection;
+			break;
+		case(topBounce):
+			state = continueDirection;
 			break;
 		default:
 			state = continueDirection;
@@ -94,16 +134,16 @@ int Ball_Tick(int state)
 	switch(state)
 	{
 		case(continueDirection):
-			ballXPosition = ballNextPosition
-			if(ballYPosition == 0)
+			//ballXPosition = ballNextPosition;
+			if(ballYDirection == 0)
 			{
-				ballYPosition--;
+				ballYPosition = ballYPosition >> 1; //used to be << 1
 			}
 			else
 			{
-				ballYPosition++;
+				ballYPosition = ballYPosition << 1; //used to be >> 1
 			}
-			if(ballDirection == 0)
+			if(ballXDirection == -1)
 			{
 				ballNextPosition = ballNextPosition << 1;
 			}
@@ -111,37 +151,73 @@ int Ball_Tick(int state)
 			{
 				ballNextPosition = ballNextPosition >> 1;
 			}
+			ballXPosition = ballNextPosition;
 			break;
 		case(changeDirection):
-			if(ballYPosition == 0)
+			if(ballYDirection == 0)
 			{
-				ballYPosition = 1;
+				ballYDirection = 1;
 			}
 			else
 			{
-				ballYPosition = 0;
-			}
-			if(ballDirection == 0)
-			{
-				ballDirection = 1;
-			}
-			else
-			{
-				ballDirection = 0;
+				ballYDirection = 0;
 			}
 			break;
-
+		case(changeDirectionCorner):
+			if(ballYDirection == 0)
+			{
+				ballYDirection = 1;
+			}
+			else
+			{
+				ballYDirection = 0;
+			}
+			if(ballXDirection == 0)
+			{
+				ballXDirection = 1;
+			}
+			else if(ballXDirection == 1)
+			{
+				ballXDirection = -1;
+			}
+			else
+			{
+				ballXDirection = 1;
+			}
+			break;
+		case(topBounce):
+			ballXDirection = -1;
+			ballNextPosition = ballNextPosition << 1;
+			ballXPosition = ballNextPosition;
+			if(ballYDirection == 0)
+			{
+				ballYPosition = ballYPosition >> 1;
+			}
+			else
+			{
+				ballYPosition = ballYPosition << 1;
+			}
+		//	AI_Pos = 0xE0;
+			break;
+		case(botBounce):
+			ballXDirection = -1;
+			//AI_Pos = 0xE0;
+			break;
+		case(reset):
+			ballXPosition = 0x10;
+			ballYPosition = 0x04;
+			ballNextPosition = 0x20; //resets back to going down
+			ballXDirection = -1;
+			ballYDirection = 1;
+			break;
 	}
 
 
 	return state;
 }
 
-*/
 
 enum Player_States {moveLeft, moveRight, stay};
-
-unsigned char paddleLocation = 0x1C;
 
 int Player_Tick(int state)
 {
@@ -205,6 +281,8 @@ int Player_Tick(int state)
 			else
 			{
 				paddleLocation = paddleLocation << 1;
+				paddle_top = paddle_top << 1;
+				paddle_bot = paddle_bot << 1;
 			}
 			break;
 		case(moveRight):
@@ -215,6 +293,8 @@ int Player_Tick(int state)
 			else
 			{
 				paddleLocation = paddleLocation >> 1;
+				paddle_top = paddle_top >> 1;
+				paddle_bot = paddle_bot >> 1;
 			}
 			break;
 		case(stay):
@@ -227,9 +307,6 @@ int Player_Tick(int state)
 
 enum AI_States {AI_moveLeft, AI_moveRight, AI_stay};
 
-unsigned char AI_Pos = 0x38; //same as player
-unsigned char AI_Top_Pos = 0x08;
-unsigned char AI_Bot_Pos = 0x20;
 int AI_Tick(int state)
 {
 	switch(state)
@@ -263,11 +340,11 @@ int AI_Tick(int state)
                         }
                         break;
 		case(AI_stay):
-			if(ballXPosition < AI_Top_Pos)
+			if(ballNextPosition < AI_Top_Pos)
                         {
                                 state = AI_moveRight;
                         }
-                        else if (ballXPosition > AI_Top_Pos)
+                        else if (ballNextPosition > AI_Top_Pos)
                         {
                                 state = AI_moveLeft;
                         }
@@ -313,7 +390,7 @@ int AI_Tick(int state)
 	return state;
 }
 
-enum Display_States {display_player, display_opponent};
+enum Display_States {display_player, display_opponent, display_ball};
 
 
 
@@ -325,6 +402,9 @@ int Display_Tick(int state)
 			state = display_opponent;
 			break;
 		case(display_opponent):
+			state = display_ball;
+			break;
+		case(display_ball):
 			state = display_player;
 			break;
 		default:
@@ -341,6 +421,10 @@ int Display_Tick(int state)
 		case(display_opponent):
 			PORTC = AI_Pos;
 			PORTD = ~(0x01);
+			break;
+		case(display_ball):
+			PORTC = ballXPosition;
+			PORTD = ~(ballYPosition);
 			break;
 	}
 
@@ -378,8 +462,8 @@ int main(void) {
     /* Insert your solution below */
 
 	
-	static task task1, task2, task3;
-	task *tasks[] = {&task1, &task2, &task3};
+	static task task1, task2, task3, task4;
+	task *tasks[] = {&task1, &task2, &task3, &task4};
 	const unsigned short numTasks = sizeof(tasks)/sizeof(task*);
 
 	const char start = -1;
@@ -390,7 +474,7 @@ int main(void) {
 	task1.TickFct = &Player_Tick;
 
 	task2.state = start;
-	task2.period = 10;
+	task2.period = 5;
 	task2.elapsedTime = task2.period;
 	task2.TickFct = &Display_Tick;
 
@@ -398,6 +482,11 @@ int main(void) {
 	task3.period = 200;
 	task3.elapsedTime = task3.period;
 	task3.TickFct = &AI_Tick;
+
+	task4.state = start;
+	task4.period = 500;
+	task4.elapsedTime = task4.period;
+	task4.TickFct = &Ball_Tick;
 
 	unsigned long GCD = tasks[0]->period;
 
