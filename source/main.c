@@ -17,7 +17,7 @@
 /////////////////////////////global variables
 
 //ball variables
-unsigned char ballXDirection = 1;  //-1 is left, 0 is straight, 1 is right
+char ballXDirection = 1;  //-1 is left, 0 is straight, 1 is right
 unsigned char ballYDirection = 1; //0 is decreasing, 1 is increasing
 unsigned char ballXPosition = 0x10;
 unsigned char ballYPosition = 0x04;
@@ -42,6 +42,110 @@ int Ball_Tick(int state)
 	switch(state)
 	{
 		case(continueDirection):
+			if(ballYDirection == 1) //if the Y-coordinate of the ball is increasing
+			{
+				if((ballYPosition << 1) == 0x10) // if the ball is entering the row that contains a paddle (used to be opposite)
+				{
+					if((paddle_top & ballNextPosition) == ballNextPosition) //if the ball will collide with a paddle
+					{
+						state = changeDirectionCorner;
+					}
+					else if((paddle_bot & ballNextPosition) == ballNextPosition)
+					{
+						state = changeDirectionCorner;
+					}
+					else if((paddleLocation & ballNextPosition) == ballNextPosition)
+					{
+						state = changeDirection;
+					}
+					else
+					{
+						state = reset;
+					}
+				}
+				else if(ballXPosition == 0x01) //if the ball is about to go off the top of the map
+				{
+					state = topBounce;
+				}
+				else if(ballXPosition == 0x80) //was ballNextPosition
+				{
+					state = botBounce;
+				}
+				else
+				{
+					state = continueDirection;
+				}
+			}
+			else
+			{
+				if((ballYPosition >> 1) == 0x01) // if the ball is entering the row that contains a paddle (used to be opposite)
+				{
+					if((AI_Top_Pos & ballNextPosition) == ballNextPosition) //if the ball will collide with a paddle
+					{
+						state = changeDirectionCorner;
+			//			AI_Pos = 0xE0;
+					}
+					else if((AI_Bot_Pos & ballNextPosition) == ballNextPosition)
+					{
+						state = changeDirectionCorner;
+			//			AI_Pos = 0xE0;
+					}
+					else if((AI_Pos & ballNextPosition) == ballNextPosition)
+					{
+						state = changeDirection;
+					}
+					else
+					{
+						state = reset;
+					}
+				}
+				else if(ballXPosition == 0x01)
+				{
+					state = topBounce;
+				}
+				else if(ballXPosition == 0x80)
+				{
+					state = botBounce;
+				}
+				else
+				{
+					state = continueDirection;
+				}
+			}
+			break;
+		case(changeDirection):
+			if(ballXPosition == 0x01)
+			{
+				state = topBounce;
+			}
+			else if(ballXPosition == 0x80)
+			{
+				state = botBounce;
+			}
+			else
+			{
+				state = continueDirection;
+			}
+			break;
+		case(reset):
+			state = continueDirection;
+			break;
+		case(changeDirectionCorner):
+			if(ballXPosition == 0x01)
+                        {
+                                state = topBounce;
+                        }
+                        else if(ballXPosition == 0x80)
+                        {
+                                state = botBounce;
+                        }
+                        else
+                        {
+                                state = continueDirection;
+                        }
+
+			break;
+		case(botBounce):
 			if(ballYDirection == 1) //if the Y-coordinate of the ball is increasing
 			{
 				if((ballYPosition << 1) == 0x10) // if the ball is entering the row that contains a paddle (used to be opposite)
@@ -111,20 +215,78 @@ int Ball_Tick(int state)
 				}
 			}
 			break;
-		case(changeDirection):
-			state = continueDirection; //continues in the new direction
-			break;
-		case(reset):
-			state = continueDirection;
-			break;
-		case(changeDirectionCorner):
-			state = continueDirection;
-			break;
-		case(botBounce):
-			state = continueDirection;
-			break;
 		case(topBounce):
-			state = continueDirection;
+			if(ballYDirection == 1) //if the Y-coordinate of the ball is increasing
+			{
+				if((ballYPosition << 1) == 0x10) // if the ball is entering the row that contains a paddle (used to be opposite)
+				{
+					if((paddle_top & ballNextPosition) == ballNextPosition) //if the ball will collide with a paddle
+					{
+						state = changeDirectionCorner;
+					//	AI_Pos = 0xE0;
+					}
+					else if((paddle_bot & ballNextPosition) == ballNextPosition)
+					{
+						state = changeDirectionCorner;
+					//	AI_Pos = 0xE0;
+					}
+					else if((paddleLocation & ballNextPosition) == ballNextPosition)
+					{
+						state = changeDirection;
+					//	AI_Pos = 0xE0;
+					}
+					else
+					{
+						state = reset;
+					}
+				}
+				else if(ballXPosition == 0x01) //if the ball is about to go off the top of the map
+				{
+					state = topBounce;
+				}
+				else if(ballXPosition == 0x80) //was ballNextPosition
+				{
+					state = botBounce;
+				}
+				else
+				{
+					state = continueDirection;
+				}
+			}
+			else
+			{
+				if((ballYPosition >> 1) == 0x01) // if the ball is entering the row that contains a paddle (used to be opposite)
+				{
+					if((AI_Top_Pos & ballNextPosition) == ballNextPosition) //if the ball will collide with a paddle
+					{
+						state = changeDirectionCorner;
+					}
+					else if((AI_Bot_Pos & ballNextPosition) == ballNextPosition)
+					{
+						state = changeDirectionCorner;
+					}
+					else if((AI_Pos & ballNextPosition) == ballNextPosition)
+					{
+						state = changeDirection;
+					}
+					else
+					{
+						state = reset;
+					}
+				}
+				else if(ballXPosition == 0x01)
+				{
+					state = topBounce;
+				}
+				else if(ballXPosition == 0x80)
+				{
+					state = botBounce;
+				}
+				else
+				{
+					state = continueDirection;
+				}
+			}
 			break;
 		default:
 			state = continueDirection;
@@ -135,6 +297,7 @@ int Ball_Tick(int state)
 	{
 		case(continueDirection):
 			//ballXPosition = ballNextPosition;
+			//AI_Pos = 0xE0;
 			if(ballYDirection == 0)
 			{
 				ballYPosition = ballYPosition >> 1; //used to be << 1
@@ -142,6 +305,29 @@ int Ball_Tick(int state)
 			else
 			{
 				ballYPosition = ballYPosition << 1; //used to be >> 1
+			}
+			if(ballXDirection == -1)
+			{
+			//	AI_Pos = 0xE0;
+				ballNextPosition = ballNextPosition << 1; //inverted this in last change
+			}
+			else
+			{
+			//	AI_Pos = 0xE0;
+				ballNextPosition = ballNextPosition >> 1;
+			}
+			ballXPosition = ballNextPosition;
+			break;
+		case(changeDirection):
+			if(ballYDirection == 0)
+			{
+				ballYDirection = 1;
+				ballYPosition = ballYPosition << 1;
+			}
+			else
+			{
+				ballYDirection = 0;
+				ballYPosition = ballYPosition >> 1;
 			}
 			if(ballXDirection == -1)
 			{
@@ -153,37 +339,30 @@ int Ball_Tick(int state)
 			}
 			ballXPosition = ballNextPosition;
 			break;
-		case(changeDirection):
-			if(ballYDirection == 0)
-			{
-				ballYDirection = 1;
-			}
-			else
-			{
-				ballYDirection = 0;
-			}
-			break;
 		case(changeDirectionCorner):
 			if(ballYDirection == 0)
 			{
 				ballYDirection = 1;
+				ballYPosition = ballYPosition << 1;
 			}
 			else
 			{
 				ballYDirection = 0;
+				ballYPosition =  ballYPosition >> 1;
 			}
-			if(ballXDirection == 0)
+			if(ballXDirection == 1)
 			{
-				ballXDirection = 1;
-			}
-			else if(ballXDirection == 1)
-			{
-				ballXDirection = -1;
+				ballXDirection = -1; //does this change? does it change back somehow?
+				//AI_Pos = 0xE0;
+				ballNextPosition = ballNextPosition << 1;
 			}
 			else
 			{
 				ballXDirection = 1;
+				ballNextPosition = ballNextPosition >> 1;
 			}
+			ballXPosition = ballNextPosition;
+	//		AI_Pos = 0xE0;
 			break;
 		case(topBounce):
 			ballXDirection = -1;
@@ -200,14 +379,24 @@ int Ball_Tick(int state)
 		//	AI_Pos = 0xE0;
 			break;
 		case(botBounce):
-			ballXDirection = -1;
+			ballXDirection = 1;
+			ballNextPosition = ballNextPosition >> 1;
+			ballXPosition = ballNextPosition;
+			if(ballYDirection == 0)
+			{
+				ballYPosition = ballYPosition >> 1;
+			}
+			else
+			{
+				ballYPosition = ballYPosition << 1;
+			}
 			//AI_Pos = 0xE0;
 			break;
 		case(reset):
 			ballXPosition = 0x10;
 			ballYPosition = 0x04;
-			ballNextPosition = 0x20; //resets back to going down
-			ballXDirection = -1;
+			ballNextPosition = 0x10; //resets back to going down
+			ballXDirection = 1;
 			ballYDirection = 1;
 			break;
 	}
@@ -340,11 +529,11 @@ int AI_Tick(int state)
                         }
                         break;
 		case(AI_stay):
-			if(ballNextPosition < AI_Top_Pos)
+			if(ballXPosition < AI_Top_Pos)
                         {
                                 state = AI_moveRight;
                         }
-                        else if (ballNextPosition > AI_Top_Pos)
+                        else if (ballXPosition > AI_Top_Pos)
                         {
                                 state = AI_moveLeft;
                         }
