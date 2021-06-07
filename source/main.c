@@ -38,16 +38,21 @@ unsigned char AI_Bot_Pos = 0x20;
 //time_t t;
 //srand(time(0));
 
+//unsigned short x = ADC;
 
+void ADC_init()
+{
+	ADCSRA |= (1 << ADEN) | (1 << ADSC) | (1 << ADATE);
+}
 //helper function
 
-/*
+
 int random_number(int min, int max)
 {
 	int difference = (max - min);
 	return (((int)(difference+1)/RAND_MAX) * rand() + min);
 }
-*/
+
 enum Ball_States{ continueDirection, changeDirection, changeDirectionCorner, topBounce, botBounce, reset};
 
 int Ball_Tick(int state)
@@ -544,17 +549,32 @@ enum AI_States {AI_moveLeft, AI_moveRight, AI_stay};
 
 int AI_Tick(int state)
 {
-//	int randomNumber = random_number(0,99); //generates a random number from 0 to 99
+	int randomNumber = rand()%100; //generates a random number from 0 to 99
+	int inaccuracy = 70;
 	switch(state)
 	{
 		case(AI_moveLeft):
 			if(ballXPosition < AI_Top_Pos)
 			{
-				state = AI_moveRight;
+				if(randomNumber > inaccuracy)
+				{
+					state = AI_moveRight;
+				}
+				else
+				{
+					state = AI_stay;
+				}
 			}
 			else if (ballXPosition > AI_Top_Pos)
 			{
-				state = AI_moveLeft;
+				if(randomNumber > inaccuracy)
+				{
+					state = AI_moveLeft;
+				}
+				else
+				{
+					state = AI_stay;
+				}
 			}
 			else
 			{
@@ -564,11 +584,25 @@ int AI_Tick(int state)
 		case(AI_moveRight):
 			if(ballXPosition < AI_Top_Pos)
                         {
-                                state = AI_moveRight;
+				if(randomNumber > inaccuracy)
+				{
+					state = AI_moveRight;
+				}
+				else
+				{
+					state = AI_stay;
+				}
                         }
                         else if (ballXPosition > AI_Top_Pos)
                         {
-                                state = AI_moveLeft;
+				if(randomNumber > inaccuracy)
+				{
+					state = AI_moveLeft;
+				}
+				else
+				{
+					state = AI_stay;
+				}
                         }
                         else
                         {
@@ -578,12 +612,25 @@ int AI_Tick(int state)
 		case(AI_stay):
 			if(ballXPosition < AI_Top_Pos)
                         {
-
-				state = AI_moveRight;
+				if(randomNumber > inaccuracy)
+				{
+					state = AI_moveRight;
+				}
+				else
+				{
+					state = AI_stay;
+				}
                         }
                         else if (ballXPosition > AI_Top_Pos)
                         {
-				state = AI_moveLeft;
+				if(randomNumber > inaccuracy)
+				{
+					state = AI_moveLeft;
+				}
+				else
+				{
+					state = AI_stay;
+				}
                         }
                         else
                         {
@@ -735,10 +782,20 @@ int main(void) {
 	TimerSet(GCD); //used to be GCD
 	TimerOn();
 
-	unsigned int seed = 49;
+	uint16_t u_rand_val = 0;
+	uint16_t u_seed_rand_val = 0;
+	ADC_init();
+
+	for(uint8_t i = 0; i < 16; i++)
+	{
+		u_seed_rand_val = u_seed_rand_val << 1 | (ADC & 0b1);
+	}
+	unsigned int seed = ADC;
+	unsigned char pattern = ADC;
+	srand(u_seed_rand_val);
     while (1)
     {
-	//srand(NULL);
+//	unsigned int randomNumber = rand()%100;
 	for(i = 0; i < numTasks; i++)
 	{
 		if(tasks[i]->elapsedTime == tasks[i]->period)
@@ -748,14 +805,6 @@ int main(void) {
 		}
 		tasks[i]->elapsedTime += GCD;
 	}
-//	if(seed < 4294967295)
-//	{
-//		seed++;
-//	}
-//	else
-//	{
-//		seed = 49;
-//	}
 	while(!TimerFlag);
 	TimerFlag = 0;
     }
